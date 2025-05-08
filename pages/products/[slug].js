@@ -1,44 +1,47 @@
-// pages/products/[slug].js
+// pages/products/[...slug].js
 import fs from 'fs';
 import path from 'path';
 import Head from 'next/head';
 import Link from 'next/link';
 
 export async function getStaticPaths() {
-  return {
-    paths: [],
-    fallback: 'blocking'
-  };
+  return { paths: [], fallback: 'blocking' };
 }
 
 export async function getStaticProps({ params }) {
-  const filePath = path.join(process.cwd(), 'data', 'products.json');
-  const products = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-  const product = products.find(p => String(p.ArticleNumber) === params.slug);
+  const slugArr = params.slug;
+  const last = slugArr[slugArr.length - 1];
+  const products = JSON.parse(
+    fs.readFileSync(path.join(process.cwd(), 'data', 'products.json'), 'utf-8')
+  );
+
+  // 1) Buscar por ArticleNumber
+  let product = products.find(p => String(p.ArticleNumber) === last);
+
+  // 2) Si no, buscar por modelo “slugificado”
   if (!product) {
-    return { notFound: true };
+    const decoded = decodeURIComponent(last).toLowerCase().replace(/-/g, ' ');
+    product = products.find(p => p.Model.toLowerCase() === decoded);
   }
+
+  if (!product) return { notFound: true };
+
   return {
     props: { product },
-    revalidate: 3600 // regenerate page every hour
+    revalidate: 3600,
   };
 }
 
 export default function ProductPage({ product }) {
-  const title = `${product.Brand} ${product.Model} – Compra en Thomann`;
-  const description = `Compra ${product.Brand} ${product.Model} en Thomann usando nuestro enlace de afiliado. Categoría: ${product.CategoryTree}.`;
-
+  const title = `${product.Brand} ${product.Model}`;
   return (
     <>
       <Head>
         <title>{title}</title>
-        <meta name="description" content={description} />
-        <meta property="og:title" content={title} />
-        <meta property="og:description" content={description} />
-        <meta property="og:image" content={product.ImageURL} />
+        <meta name="description" content={product.Description || `${product.Brand} ${product.Model}`} />
       </Head>
 
-      <div className="max-w-2xl mx-auto p-4">
+      <div className="max-w-2xl mx-auto p-6">
         <h1 className="text-2xl font-bold mb-4">{product.Brand} {product.Model}</h1>
         <div className="relative w-full h-64 mb-4">
           <img
@@ -49,6 +52,15 @@ export default function ProductPage({ product }) {
           />
         </div>
         <p className="italic mb-4">{product.CategoryTree}</p>
+        {/* Descripción */}
+        {product.Description ? (
+          <div className="prose prose-sm mb-6">
+            <h2>Descripción</h2>
+            <p>{product.Description}</p>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 mb-6">(sin descripción disponible)</p>
+        )}
         <a
           href={product.affiliateURL}
           target="_blank"
@@ -58,7 +70,7 @@ export default function ProductPage({ product }) {
           Comprar en Thomann
         </a>
         <Link legacyBehavior href="/">
-          <a className="block mt-6 text-sm text-gray-600 hover:underline">
+          <a className="block mt-4 text-sm text-gray-600 hover:underline">
             ← Volver al catálogo
           </a>
         </Link>
@@ -66,3 +78,4 @@ export default function ProductPage({ product }) {
     </>
   );
 }
+

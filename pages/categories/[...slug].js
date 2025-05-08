@@ -7,38 +7,53 @@ import Link from 'next/link';
 export async function getStaticPaths() {
   return {
     paths: [],
-    fallback: 'blocking'
+    fallback: 'blocking',
   };
 }
 
 export async function getStaticProps({ params }) {
-  const filePath = path.join(process.cwd(), 'data', 'products.json');
-  const products = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-  const slugArray = params.slug; // e.g. ['Wind Instruments','Clarinets']
-  const target = slugArray.join(' > ').toLowerCase();
-
-  const items = products.filter(p =>
-    String(p.CategoryTree || '').toLowerCase().startsWith(target)
+  const products = JSON.parse(
+    fs.readFileSync(path.join(process.cwd(), 'data', 'products.json'), 'utf-8')
   );
+  const slugArray = params.slug || []; // e.g. ['Wind Instruments', 'Clarinets']
+  const prefix = slugArray.join(' > ').toLowerCase();
+
+  // Filtra los productos que coincidan con el prefijo
+  const items = products.filter(p =>
+    String(p.CategoryTree || '').toLowerCase().startsWith(prefix)
+  );
+
+  // Calcula subcategorías inmediatas
+  const subs = new Set();
+  items.forEach(p => {
+    const levels = String(p.CategoryTree || '').split('>').map(s => s.trim());
+    if (levels.length > slugArray.length) {
+      const next = levels[slugArray.length];
+      subs.add(next);
+    }
+  });
+  const subcategories = Array.from(subs).sort();
 
   return {
     props: {
       slug: slugArray,
-      items
+      items,
+      subcategories,
     },
-    revalidate: 3600 // regenerate every hour
+    revalidate: 3600,
   };
 }
 
-export default function CategoryPage({ slug, items }) {
-  const title = slug.join(' / ');
+export default function CategoryPage({ slug, items, subcategories }) {
+  const title = slug.length ? slug.join(' / ') : 'Categorías';
   return (
     <>
       <Head>
-        <title>{title} – Categoría</title>
-        <meta name="description" content={`Productos en la categoría ${title}.`} />
+        <title>{title} – Nuestra Tienda</title>
+        <meta name="description" content={`Explora productos en la categoría ${title}.`} />
       </Head>
       <div className="max-w-5xl mx-auto p-6">
+        {/* Breadcrumbs */}
         <nav className="text-sm mb-4">
           <Link href="/"><a className="hover:underline">Inicio</a></Link>
           {slug.map((part, i) => (
@@ -51,11 +66,32 @@ export default function CategoryPage({ slug, items }) {
           ))}
         </nav>
 
+        {/* Subcategorías */}
+        {subcategories.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold mb-2">Subcategorías</h2>
+            <div className="flex flex-wrap gap-2">
+              {subcategories.map(sub => (
+                <Link
+                  legacyBehavior
+                  key={sub}
+                  href={`/categories/${[...slug, sub].map(encodeURIComponent).join('/')}`}
+                >
+                  <a className="px-3 py-1 border rounded hover:bg-gray-100">
+                    {sub}
+                  </a>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Productos */}
         <h1 className="text-2xl font-bold mb-6">{title}</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {items.map(p => (
             <Link legacyBehavior key={p.ArticleNumber} href={`/products/${p.ArticleNumber}`}>
-              <a className="border rounded-lg p-4 hover:shadow-lg transition">
+              <a className="block border rounded-lg p-4 hover:shadow-lg transition">
                 <div className="relative w-full h-48">
                   <img
                     src={p.ImageURL}
