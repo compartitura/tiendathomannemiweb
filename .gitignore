@@ -1,0 +1,14 @@
+# Dependencias y build
+node_modules/
+.next/
+out/
+
+# Datos generados
+data/products.json
+productcatalog_*.csv
+
+# Entornos
+.env.local
+
+# Archivos temporales
+trigger.txt
