@@ -3,9 +3,6 @@ node_modules/
 .next/
 out/
 
-# Datos generados: no versionar el JSON de catálogo
-data/products.json
-
 # Archivos de catálogo originales (si prefieres versionar solo uno, ajústalo)
 # Aquí añadimos el CSV; si usas XLSX, cambia la extensión
 !productcatalog_en_thomann.csv
