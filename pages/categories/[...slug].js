@@ -3,33 +3,30 @@ import fs from 'fs';
 import path from 'path';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 export async function getStaticPaths() {
-  return {
-    paths: [],
-    fallback: 'blocking',
-  };
+  return { paths: [], fallback: 'blocking' };
 }
 
 export async function getStaticProps({ params }) {
   const products = JSON.parse(
     fs.readFileSync(path.join(process.cwd(), 'data', 'products.json'), 'utf-8')
   );
-  const slugArray = params.slug || []; // e.g. ['Wind Instruments', 'Clarinets']
+  const slugArray = params.slug || [];
   const prefix = slugArray.join(' > ').toLowerCase();
 
-  // Filtra los productos que coincidan con el prefijo
+  // filter items matching this category prefix
   const items = products.filter(p =>
     String(p.CategoryTree || '').toLowerCase().startsWith(prefix)
   );
 
-  // Calcula subcategorías inmediatas
+  // compute immediate subcategories
   const subs = new Set();
   items.forEach(p => {
     const levels = String(p.CategoryTree || '').split('>').map(s => s.trim());
     if (levels.length > slugArray.length) {
-      const next = levels[slugArray.length];
-      subs.add(next);
+      subs.add(levels[slugArray.length]);
     }
   });
   const subcategories = Array.from(subs).sort();
@@ -38,14 +35,22 @@ export async function getStaticProps({ params }) {
     props: {
       slug: slugArray,
       items,
-      subcategories,
+      subcategories
     },
-    revalidate: 3600,
+    revalidate: 3600
   };
 }
 
 export default function CategoryPage({ slug, items, subcategories }) {
+  const router = useRouter();
+  const page = parseInt(router.query.page || '1', 10);
+  const perPage = 20;
+  const totalPages = Math.ceil(items.length / perPage);
+  const start = (page - 1) * perPage;
+  const slice = items.slice(start, start + perPage);
+
   const title = slug.length ? slug.join(' / ') : 'Categorías';
+
   return (
     <>
       <Head>
@@ -66,30 +71,28 @@ export default function CategoryPage({ slug, items, subcategories }) {
           ))}
         </nav>
 
-        {/* Subcategorías */}
+        {/* Subcategories */}
         {subcategories.length > 0 && (
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-2">Subcategorías</h2>
             <div className="flex flex-wrap gap-2">
               {subcategories.map(sub => (
                 <Link
-                  legacyBehavior
                   key={sub}
+                  legacyBehavior
                   href={`/categories/${[...slug, sub].map(encodeURIComponent).join('/')}`}
                 >
-                  <a className="px-3 py-1 border rounded hover:bg-gray-100">
-                    {sub}
-                  </a>
+                  <a className="px-3 py-1 border rounded hover:bg-gray-100">{sub}</a>
                 </Link>
               ))}
             </div>
           </div>
         )}
 
-        {/* Productos */}
+        {/* Products grid */}
         <h1 className="text-2xl font-bold mb-6">{title}</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {items.map(p => (
+          {slice.map(p => (
             <Link legacyBehavior key={p.ArticleNumber} href={`/products/${p.ArticleNumber}`}>
               <a className="block border rounded-lg p-4 hover:shadow-lg transition">
                 <div className="relative w-full h-48">
@@ -104,6 +107,25 @@ export default function CategoryPage({ slug, items, subcategories }) {
               </a>
             </Link>
           ))}
+        </div>
+
+        {/* Pagination */}
+        <div className="flex items-center justify-center space-x-4 mt-8">
+          <button
+            onClick={() => router.push(`${router.asPath.split('?')[0]}?page=${page - 1}`)}
+            disabled={page <= 1}
+            className="px-4 py-2 border rounded disabled:opacity-50"
+          >
+            ← Anterior
+          </button>
+          <span>Página {page} de {totalPages}</span>
+          <button
+            onClick={() => router.push(`${router.asPath.split('?')[0]}?page=${page + 1}`)}
+            disabled={page >= totalPages}
+            className="px-4 py-2 border rounded disabled:opacity-50"
+          >
+            Siguiente →
+          </button>
         </div>
       </div>
     </>
