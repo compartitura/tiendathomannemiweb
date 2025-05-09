@@ -1,8 +1,7 @@
+// next.config.js
 /** @type {import('next').NextConfig} */
-const nextConfig = {
+module.exports = {
   images: {
     domains: ['www.thomann.de'],
   },
 };
-
-module.exports = nextConfig;

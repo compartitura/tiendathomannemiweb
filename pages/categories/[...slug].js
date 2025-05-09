@@ -1,39 +1,93 @@
 // pages/categories/[...slug].js
 import fs from 'fs';
 import path from 'path';
-import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import FilterSidebar from '../../components/ui/FilterSidebar';
+import Card from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
 
 export async function getServerSideProps({ params, query }) {
-  // Lee siempre desde el JSON pre-enriquecido
   const filePath = path.join(process.cwd(), 'data', 'products.json');
   const all = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 
-  // Filtrar por categoría
-  const slugArray = params.slug || [];
-  const prefix = slugArray.join(' > ').toLowerCase();
-  const items = all.filter(p =>
-    String(p.CategoryTree || '').toLowerCase().startsWith(prefix)
+  const slugArr = params.slug || [];
+  const prefix = slugArr.join(' > ').toLowerCase();
+
+  // Productos en esta categoría
+  const inCategory = all.filter(p =>
+    (p.CategoryTree || '').toLowerCase().startsWith(prefix)
   );
 
-  // Extraer subcategorías
-  const subs = new Set();
-  items.forEach(p => {
-    const levels = String(p.CategoryTree || '').split('>').map(s=>s.trim());
-    if (levels.length > slugArray.length) subs.add(levels[slugArray.length]);
+  // Subcategorías inmediatas
+  const subs = Array.from(new Set(
+    inCategory.map(p => {
+      const levels = (p.CategoryTree || '').split('>').map(s => s.trim());
+      return levels[slugArr.length];
+    }).filter(Boolean)
+  )).sort();
+
+  // Subcategorías favoritas en español
+  const FAVORITE_SUBCATEGORIES = [
+    'Alto',
+    'Tenor',
+    'Soprano'
+  ];
+  // Ordenar con favoritas arriba
+  const sortedSubs = [
+    ...FAVORITE_SUBCATEGORIES.filter(s => subs.includes(s)),
+    ...subs.filter(s => !FAVORITE_SUBCATEGORIES.includes(s))
+  ];
+
+  // Construir subItems con imagen+enlace
+  const subItems = sortedSubs.map(sub => {
+    const prod = inCategory.find(p => {
+      const levels = (p.CategoryTree || '').split('>').map(s => s.trim());
+      return levels[slugArr.length] === sub;
+    });
+    return {
+      name: sub,
+      slug: encodeURIComponent(sub),
+      imageURL: prod?.ImageURL || '/placeholder.png',
+    };
   });
 
-  // Paginación
-  const page = parseInt(query.page || '1', 10);
-  const perPage = 20;
-  const totalPages = Math.ceil(items.length / perPage);
-  const slice = items.slice((page - 1) * perPage, (page - 1) * perPage + perPage);
+  // Si es último nivel (sin subItems), preparar filtros y productos
+  let filterDefs = [], filterQuery = {}, slice = [], page = 1, totalPages = 1;
+  if (subItems.length === 0) {
+    // Marcas únicas
+    const brands = Array.from(new Set(inCategory.map(p => p.Brand))).sort();
+    // Leer filtro de marcas
+    if (query.brand) {
+      filterQuery.brand = Array.isArray(query.brand)
+        ? query.brand
+        : [query.brand];
+    }
+    // Filtrar productos por marca
+    let filtered = inCategory;
+    if (filterQuery.brand) {
+      filtered = filtered.filter(p =>
+        filterQuery.brand.includes(p.Brand)
+      );
+    }
+    // Paginación
+    page = parseInt(query.page || '1', 10);
+    const perPage = 20;
+    totalPages = Math.ceil(filtered.length / perPage);
+    slice = filtered.slice(
+      (page - 1) * perPage,
+      (page - 1) * perPage + perPage
+    );
+    // Definimos filtro de marcas
+    filterDefs = [{ name: 'Marcas', key: 'brand', options: brands }];
+  }
 
   return {
     props: {
-      slug: slugArray,
-      subcategories: Array.from(subs).sort(),
+      slug: slugArr,
+      subItems,
+      filterDefs,
+      filterQuery,
       slice,
       page,
       totalPages
@@ -41,72 +95,100 @@ export async function getServerSideProps({ params, query }) {
   };
 }
 
-export default function CategoryPage({ slug, subcategories, slice, page, totalPages }) {
+export default function Categoria({
+  slug,
+  subItems,
+  filterDefs,
+  filterQuery,
+  slice,
+  page,
+  totalPages
+}) {
   const router = useRouter();
-  const base = '/categories/' + slug.map(encodeURIComponent).join('/');
-  const changePage = n => router.push({ pathname: base, query: { page: n } });
-  const title = slug.length ? slug.join(' / ') : 'Categorías';
+  const basePath = `/categories/${slug.map(encodeURIComponent).join('/')}`;
+
+  const cambiarPagina = n => {
+    router.push({ pathname: basePath, query: { ...router.query, page: n } });
+  };
 
   return (
-    <>
-      <Head>
-        <title>{title} – Nuestra Tienda</title>
-        <meta name="description" content={`Explora productos en ${title}`} />
-      </Head>
-      <div className="max-w-5xl mx-auto p-6">
-        {/* Breadcrumbs */}
-        <nav className="text-sm mb-4">
-          <Link href="/" className="hover:underline">Inicio</Link>
-          {slug.map((part,i)=>(
-            <span key={i}>{' › '}
-              <Link
-                href={{ pathname: `/categories/${slug.slice(0,i+1).map(encodeURIComponent).join('/')}`, query:{page:1} }}
-                className="hover:underline"
-              >{part}</Link>
-            </span>
-          ))}
-        </nav>
+    <div className="max-w-5xl mx-auto p-6">
+      {/* Migas de pan */}
+      <nav className="text-sm mb-4">
+        <Link href="/" legacyBehavior><a className="hover:underline">Inicio</a></Link>
+        {slug.map((parte, i) => (
+          <span key={i}>
+            {' › '}
+            <Link
+              href={{
+                pathname: `${basePath.split('/').slice(0, i + 2).join('/')}`,
+                query: { page: 1 }
+              }}
+              legacyBehavior
+            >
+              <a className="hover:underline">{parte}</a>
+            </Link>
+          </span>
+        ))}
+      </nav>
 
-        {/* Subcategorías */}
-        {subcategories.length>0 && (
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">Subcategorías</h2>
-            <div className="flex flex-wrap gap-2">
-              {subcategories.map(sub=>(
-                <Link key={sub} href={`${base}/${encodeURIComponent(sub)}?page=1`} className="px-3 py-1 border rounded hover:bg-gray-100">
-                  {sub}
-                </Link>
+      {subItems.length > 0 ? (
+        // Mostrar subcategorías con imagen
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {subItems.map(item => (
+            <Link
+              key={item.name}
+              href={{ pathname: `${basePath}/${item.slug}`, query: { page: 1 } }}
+              legacyBehavior
+            >
+              <a className="block border rounded-lg overflow-hidden hover:shadow-lg transition">
+                <div className="w-full h-48 relative">
+                  <img
+                    src={item.imageURL}
+                    alt={item.name}
+                    loading="lazy"
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+                <div className="p-4">
+                  <h3 className="font-semibold text-lg">{item.name}</h3>
+                </div>
+              </a>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        // Último nivel: sidebar + productos
+        <div className="flex flex-col lg:flex-row gap-6">
+          <aside className="w-full lg:w-1/4">
+            <FilterSidebar filterDefs={filterDefs} filterQuery={filterQuery} />
+          </aside>
+          <div className="flex-grow space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {slice.map(product => (
+                <Card key={product.ArticleNumber} product={product} />
               ))}
             </div>
+            <div className="flex items-center justify-center space-x-4">
+              <Button
+                onClick={() => cambiarPagina(page - 1)}
+                variant="outline"
+                disabled={page <= 1}
+              >
+                ← Anterior
+              </Button>
+              <span className="text-sm">Página {page} de {totalPages}</span>
+              <Button
+                onClick={() => cambiarPagina(page + 1)}
+                variant="outline"
+                disabled={page >= totalPages}
+              >
+                Siguiente →
+              </Button>
+            </div>
           </div>
-        )}
-
-        {/* Grid paginado con extracto de 60 car. */}
-        <h1 className="text-2xl font-bold mb-6">{title}</h1>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {slice.map(p=>(
-            <a key={p.ArticleNumber} href={p.affiliateURL} target="_blank" rel="noopener noreferrer"
-               className="block border rounded-lg p-4 hover:shadow-lg transition">
-              <img src={p.ImageURL} alt={p.Model} loading="lazy" className="object-cover w-full h-48 rounded"/>
-              <h2 className="mt-2 font-semibold">{p.Brand} {p.Model}</h2>
-              <p className="mt-1 text-sm text-gray-600">
-                {p.Description
-                  ? (p.Description.length>60 ? `${p.Description.slice(0,60)}…` : p.Description)
-                  : '(sin descripción disponible)'
-                }
-              </p>
-              <p className="mt-2 text-sm text-blue-600">Comprar en Thomann →</p>
-            </a>
-          ))}
         </div>
-
-        {/* Paginación */}
-        <div className="flex items-center justify-center space-x-4 mt-8">
-          <button onClick={()=>changePage(page-1)} disabled={page<=1} className="px-4 py-2 border rounded disabled:opacity-50">← Anterior</button>
-          <span>Página {page} de {totalPages}</span>
-          <button onClick={()=>changePage(page+1)} disabled={page>=totalPages} className="px-4 py-2 border rounded disabled:opacity-50">Siguiente →</button>
-        </div>
-      </div>
-    </>
+      )}
+    </div>
   );
 }

@@ -3,84 +3,97 @@ import fs from 'fs';
 import path from 'path';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
 
 export async function getServerSideProps({ query }) {
   const filePath = path.join(process.cwd(), 'data', 'products.json');
   const all = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 
+  // 1) Obtén todas las categorías de primer nivel
+  const firstLevels = Array.from(
+    new Set(
+      all
+        .map(p => (p.CategoryTree || '').split('>')[0].trim())
+        .filter(Boolean)
+    )
+  ).sort();
+
+  // 2) Define tus categorías favoritas en español
+  const FAVORITE_CATEGORIES = [
+    'Guitarras',
+    'Teclados',
+    'Instrumentos de Viento'
+  ];
+
+  // 3) Ordena: favoritas primero (si existen), luego el resto
+  const sortedCategories = [
+    ...FAVORITE_CATEGORIES.filter(cat => firstLevels.includes(cat)),
+    ...firstLevels.filter(cat => !FAVORITE_CATEGORIES.includes(cat))
+  ];
+
+  // 4) Paginación sin filtros
   const page = parseInt(query.page || '1', 10);
   const perPage = 20;
   const totalPages = Math.ceil(all.length / perPage);
   const slice = all.slice((page - 1) * perPage, (page - 1) * perPage + perPage);
 
-  const firstLevels = Array.from(
-    new Set(all.map(p => (p.CategoryTree||'').split('>')[0].trim()).filter(Boolean))
-  ).sort();
-
-  return { props: { slice, firstLevels, page, totalPages } };
+  return {
+    props: {
+      slice,
+      firstLevels: sortedCategories,
+      page,
+      totalPages
+    }
+  };
 }
 
-export default function Home({ slice, firstLevels, page, totalPages }) {
+export default function Inicio({ slice, firstLevels, page, totalPages }) {
   const router = useRouter();
-  const changePage = n => router.push({ pathname: '/', query: { page: n } });
+  const cambiarPagina = n => router.push({ pathname: '/', query: { page: n } });
 
   return (
-    <main className="max-w-5xl mx-auto p-6">
-      {/* Categorías */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-2">Categorías</h2>
+    <main className="max-w-5xl mx-auto p-6 space-y-6">
+      {/* Categorías favoritas + resto */}
+      <section className="mb-4">
         <div className="flex flex-wrap gap-2">
           {firstLevels.map(cat => (
             <Link
               key={cat}
               href={{ pathname: `/categories/${encodeURIComponent(cat)}`, query: { page: 1 } }}
-              className="px-3 py-1 border rounded hover:bg-gray-100"
+              className="px-3 py-1 border rounded hover:bg-gray-100 text-sm"
             >
               {cat}
             </Link>
           ))}
         </div>
-      </div>
+      </section>
 
       {/* Productos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {slice.map(p => (
-          <a
-            key={p.ArticleNumber}
-            href={p.affiliateURL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block border rounded-lg p-4 hover:shadow-lg transition"
-          >
-            <img
-              src={p.ImageURL}
-              alt={p.Model}
-              loading="lazy"
-              className="object-cover w-full h-48 rounded"
-            />
-            <h2 className="mt-2 font-semibold">{p.Brand} {p.Model}</h2>
-            {p.Description && (
-              <p className="mt-1 text-sm text-gray-600">
-                {p.Description.length > 60
-                  ? `${p.Description.slice(0,60)}…`
-                  : p.Description}
-              </p>
-            )}
-            <p className="mt-2 text-sm text-blue-600">Comprar en Thomann →</p>
-          </a>
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {slice.map(product => (
+          <Card key={product.ArticleNumber} product={product} />
         ))}
-      </div>
+      </section>
 
       {/* Paginación */}
-      <div className="flex items-center justify-center space-x-4 mt-8">
-        <button onClick={() => changePage(page - 1)} disabled={page <= 1} className="px-4 py-2 border rounded disabled:opacity-50">
+      <section className="flex items-center justify-center space-x-4">
+        <Button
+          onClick={() => cambiarPagina(page - 1)}
+          variant="outline"
+          disabled={page <= 1}
+        >
           ← Anterior
-        </button>
-        <span>Página {page} de {totalPages}</span>
-        <button onClick={() => changePage(page + 1)} disabled={page >= totalPages} className="px-4 py-2 border rounded disabled:opacity-50">
+        </Button>
+        <span className="text-sm">Página {page} de {totalPages}</span>
+        <Button
+          onClick={() => cambiarPagina(page + 1)}
+          variant="outline"
+          disabled={page >= totalPages}
+        >
           Siguiente →
-        </button>
-      </div>
+        </Button>
+      </section>
     </main>
   );
 }
