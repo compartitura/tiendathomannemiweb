@@ -11,3 +11,4 @@ productcatalog_*.xlsx
 # Entornos y temporales
 .env.local
 trigger.txt
+.vercel
