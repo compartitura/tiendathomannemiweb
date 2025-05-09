@@ -2,35 +2,64 @@
 import fs from 'fs';
 import path from 'path';
 import Head from 'next/head';
+import axios from 'axios';
+import cheerio from 'cheerio';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
+const USER_AGENT = 'Mozilla/5.0 (compatible; Bot/1.0)';
+
+// Función para extraer descripción de Thomann
+async function fetchDescription(url) {
+  const { data: html } = await axios.get(url, {
+    headers: { 'User-Agent': USER_AGENT }
+  });
+  const $ = cheerio.load(html);
+  let desc = $('meta[name="description"]').attr('content') || '';
+  if (!desc) desc = $('meta[property="og:description"]').attr('content') || '';
+  const sel = '#tab-description, .long-description, section#product-description';
+  let longText = '';
+  $(sel).each((_, el) => longText += $(el).text().trim() + '\n\n');
+  return (longText.trim() || desc.trim()).replace(/\s+/g, ' ');
+}
+
 export async function getServerSideProps({ params, query }) {
-  // Leer el JSON desde la raíz
+  // 1) Leer JSON desde la raíz
   const filePath = path.join(process.cwd(), 'data', 'products.json');
   const all = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 
-  // Construir prefijo de categoría
+  // 2) Filtrar por categoría
   const slugArray = params.slug || [];
   const prefix = slugArray.join(' > ').toLowerCase();
-
-  // Filtrar productos de esta categoría
   const items = all.filter(p =>
     String(p.CategoryTree || '').toLowerCase().startsWith(prefix)
   );
 
-  // Extraer subcategorías inmediatas
+  // 3) Subcategorías inmediatas
   const subs = new Set();
   items.forEach(p => {
     const levels = String(p.CategoryTree || '').split('>').map(s => s.trim());
     if (levels.length > slugArray.length) subs.add(levels[slugArray.length]);
   });
 
-  // Paginación
+  // 4) Paginación
   const page = parseInt(query.page || '1', 10);
   const perPage = 20;
   const totalPages = Math.ceil(items.length / perPage);
   const slice = items.slice((page - 1) * perPage, (page - 1) * perPage + perPage);
+
+  // 5) Enriquecer descripciones dinámicamente
+  await Promise.all(slice.map(async p => {
+    if (!p.Description || !p.Description.trim()) {
+      const rawUrl = (p.ProductURL || p.affiliateURL || '').trim();
+      const cleanUrl = rawUrl.replace(/\s.*$/, '');
+      try {
+        p.Description = await fetchDescription(cleanUrl);
+      } catch {
+        p.Description = '(sin descripción disponible)';
+      }
+    }
+  }));
 
   return {
     props: {
@@ -46,14 +75,15 @@ export async function getServerSideProps({ params, query }) {
 export default function CategoryPage({ slug, subcategories, slice, page, totalPages }) {
   const router = useRouter();
   const base = '/categories/' + slug.map(encodeURIComponent).join('/');
+  const title = slug.length ? slug.join(' / ') : 'Categorías';
 
   const changePage = n => router.push({ pathname: base, query: { page: n } });
-  const title = slug.length ? slug.join(' / ') : 'Categorías';
 
   return (
     <>
       <Head>
         <title>{title} – Nuestra Tienda</title>
+        <meta name="description" content={`Explora productos en ${title}`} />
       </Head>
       <div className="max-w-5xl mx-auto p-6">
         {/* Breadcrumbs */}
@@ -63,10 +93,7 @@ export default function CategoryPage({ slug, subcategories, slice, page, totalPa
             <span key={i}>
               {' › '}
               <Link
-                href={{
-                  pathname: `/categories/${slug.slice(0, i+1).map(encodeURIComponent).join('/')}`,
-                  query: { page: 1 }
-                }}
+                href={{ pathname: `/categories/${slug.slice(0, i+1).map(encodeURIComponent).join('/')}`, query:{ page: 1 } }}
                 className="hover:underline"
               >
                 {part}
@@ -93,7 +120,7 @@ export default function CategoryPage({ slug, subcategories, slice, page, totalPa
           </div>
         )}
 
-        {/* Grid con extracto de descripción */}
+        {/* Grid paginado con extracto de 60 car. */}
         <h1 className="text-2xl font-bold mb-6">{title}</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {slice.map(p => (
@@ -111,13 +138,11 @@ export default function CategoryPage({ slug, subcategories, slice, page, totalPa
                 className="object-cover w-full h-48 rounded"
               />
               <h2 className="mt-2 font-semibold">{p.Brand} {p.Model}</h2>
-              {p.Description && (
-                <p className="mt-1 text-sm text-gray-600">
-                  {p.Description.length > 60
-                    ? `${p.Description.slice(0, 60)}…`
-                    : p.Description}
-                </p>
-              )}
+              <p className="mt-1 text-sm text-gray-600">
+                {p.Description.length > 60
+                  ? `${p.Description.slice(0, 60)}…`
+                  : p.Description}
+              </p>
               <p className="mt-2 text-sm text-blue-600">Comprar en Thomann →</p>
             </a>
           ))}
