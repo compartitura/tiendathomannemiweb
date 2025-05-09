@@ -1,22 +1,30 @@
-// pages/products/[slug].js
+// pages/products/[...slug].js
 import fs from 'fs';
 import path from 'path';
 import Head from 'next/head';
 
 export async function getServerSideProps({ params }) {
+  // Leer el JSON desde la raíz
   const filePath = path.join(process.cwd(), 'data', 'products.json');
   const products = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 
+  // Determinar slug o ID
   const slugArr = Array.isArray(params.slug) ? params.slug : [params.slug];
   const last = slugArr[slugArr.length - 1];
 
+  // 1) Buscar por ArticleNumber
   let product = products.find(p => String(p.ArticleNumber) === last);
+
+  // 2) Si no existe, buscar por modelo slugificado
   if (!product) {
     const decoded = decodeURIComponent(last).toLowerCase().replace(/-/g, ' ');
     product = products.find(p => p.Model.toLowerCase() === decoded);
   }
 
-  if (!product) return { notFound: true };
+  // Si no lo encontramos, 404
+  if (!product) {
+    return { notFound: true };
+  }
 
   return { props: { product } };
 }

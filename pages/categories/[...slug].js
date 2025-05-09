@@ -6,9 +6,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 export async function getServerSideProps({ params, query }) {
-  const all = JSON.parse(
-    fs.readFileSync(path.join(process.cwd(), 'data', 'products.json'), 'utf-8')
-  );
+  // Leer el JSON desde la raíz
+  const filePath = path.join(process.cwd(), 'data', 'products.json');
+  const all = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+  // Construir prefijo de categoría
   const slugArray = params.slug || [];
   const prefix = slugArray.join(' > ').toLowerCase();
 
@@ -17,13 +19,14 @@ export async function getServerSideProps({ params, query }) {
     String(p.CategoryTree || '').toLowerCase().startsWith(prefix)
   );
 
-  // Calcular subcategorías inmediatas
+  // Extraer subcategorías inmediatas
   const subs = new Set();
   items.forEach(p => {
     const levels = String(p.CategoryTree || '').split('>').map(s => s.trim());
     if (levels.length > slugArray.length) subs.add(levels[slugArray.length]);
   });
 
+  // Paginación
   const page = parseInt(query.page || '1', 10);
   const perPage = 20;
   const totalPages = Math.ceil(items.length / perPage);
@@ -60,7 +63,10 @@ export default function CategoryPage({ slug, subcategories, slice, page, totalPa
             <span key={i}>
               {' › '}
               <Link
-                href={`${base.split('?')[0]}?page=1`}
+                href={{
+                  pathname: `/categories/${slug.slice(0, i+1).map(encodeURIComponent).join('/')}`,
+                  query: { page: 1 }
+                }}
                 className="hover:underline"
               >
                 {part}
@@ -87,7 +93,7 @@ export default function CategoryPage({ slug, subcategories, slice, page, totalPa
           </div>
         )}
 
-        {/* Grid paginado con extracto de descripción */}
+        {/* Grid con extracto de descripción */}
         <h1 className="text-2xl font-bold mb-6">{title}</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {slice.map(p => (
