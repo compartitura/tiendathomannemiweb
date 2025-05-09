@@ -12,13 +12,13 @@ export async function getServerSideProps({ params }) {
     const last = slugArr[slugArr.length-1];
     let p = all.find(x=>String(x.ArticleNumber)===last);
     if(!p){
-      const decoded = decodeURIComponent(last).toLowerCase().replace(/-/g,' ');
-      p = all.find(x=>x.Model.toLowerCase()===decoded);
+      const dec=decodeURIComponent(last).toLowerCase().replace(/-/g,' ');
+      p = all.find(x=>x.Model.toLowerCase()===dec);
     }
-    if(!p) return { notFound: true };
-    return { props: { product: p } };
+    if(!p) return { notFound:true };
+    return { props:{ product:p }};
   } catch {
-    return { notFound: true };
+    return { notFound:true };
   }
 }
 
@@ -30,7 +30,10 @@ export default function ProductPage({ product }) {
       <div className="max-w-2xl mx-auto p-4">
         <h1 className="text-2xl font-bold mb-4">{title}</h1>
         <img src={product.ImageURL} alt={product.Model} className="w-full h-64 object-cover rounded mb-4"/>
-        {product.Description && <p className="mb-6">{product.Description}</p>}
+        {product.Description
+          ? <div className="prose mb-6"><h2>Descripción</h2><p>{product.Description}</p></div>
+          : <p className="mb-6 italic text-gray-500">(sin descripción disponible)</p>
+        }
         <a href={product.affiliateURL} target="_blank" rel="noopener noreferrer"
            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
           Comprar en Thomann

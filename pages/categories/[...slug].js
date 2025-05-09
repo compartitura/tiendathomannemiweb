@@ -2,6 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 export async function getServerSideProps({ params, query }) {
@@ -44,14 +45,14 @@ export default function CategoryPage({ slug, subcategories, slice, page, totalPa
 
   return (
     <>
-      <Head><title>{title}</title></Head>
+      <Head><title>{title} – Nuestra Tienda</title></Head>
       <div className="max-w-5xl mx-auto p-6">
         {/* Breadcrumbs */}
         <nav className="text-sm mb-4">
-          <a href="/" className="hover:underline">Inicio</a>
+          <Link href="/" className="hover:underline">Inicio</Link>
           {slug.map((part,i)=>(
             <span key={i}>{' › '}
-              <a href={`/categories/${slug.slice(0,i+1).map(encodeURIComponent).join('/')}?page=1`} className="hover:underline">{part}</a>
+              <Link href={`${base.split('?')[0]}?page=1`} className="hover:underline">{part}</Link>
             </span>
           ))}
         </nav>
@@ -62,13 +63,13 @@ export default function CategoryPage({ slug, subcategories, slice, page, totalPa
             <h2 className="text-xl font-semibold mb-2">Subcategorías</h2>
             <div className="flex flex-wrap gap-2">
               {subcategories.map(sub=>(
-                <a key={sub} href={`${base}/${encodeURIComponent(sub)}?page=1`} className="px-3 py-1 border rounded hover:bg-gray-100">{sub}</a>
+                <Link key={sub} href={`${base}/${encodeURIComponent(sub)}?page=1`} className="px-3 py-1 border rounded hover:bg-gray-100">{sub}</Link>
               ))}
             </div>
           </div>
         )}
 
-        {/* Grid paginado con enlace afiliado */}
+        {/* Grid paginado */}
         <h1 className="text-2xl font-bold mb-6">{title}</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {slice.map(p=>(

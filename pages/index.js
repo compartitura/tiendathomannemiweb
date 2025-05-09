@@ -1,6 +1,7 @@
 // pages/index.js
 import fs from 'fs';
 import path from 'path';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 export async function getServerSideProps({ query }) {
@@ -30,18 +31,18 @@ export default function Home({ slice, firstLevels, page, totalPages }) {
         <h2 className="text-xl font-semibold mb-2">Categorías</h2>
         <div className="flex flex-wrap gap-2">
           {firstLevels.map(cat => (
-            <a
+            <Link
               key={cat}
-              href={`/categories/${encodeURIComponent(cat)}?page=1`}
+              href={{ pathname: `/categories/${encodeURIComponent(cat)}`, query: { page: 1 } }}
               className="px-3 py-1 border rounded hover:bg-gray-100"
             >
               {cat}
-            </a>
+            </Link>
           ))}
         </div>
       </div>
 
-      {/* Grid de productos: tarjetas que abren Thomann con afiliado */}
+      {/* Grid de productos */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {slice.map(p => (
           <a
@@ -72,10 +73,10 @@ export default function Home({ slice, firstLevels, page, totalPages }) {
 
       {/* Paginación */}
       <div className="flex items-center justify-center space-x-4 mt-8">
-        <button onClick={() => changePage(page - 1)} disabled={page<=1} className="px-4 py-2 border rounded disabled:opacity-50">← Anterior</button>
+        <button onClick={() => changePage(page-1)} disabled={page<=1} className="px-4 py-2 border rounded disabled:opacity-50">← Anterior</button>
         <span>Página {page} de {totalPages}</span>
-        <button onClick={() => changePage(page + 1)} disabled={page>=totalPages} className="px-4 py-2 border rounded disabled:opacity-50">Siguiente →</button>
+        <button onClick={() => changePage(page+1)} disabled={page>=totalPages} className="px-4 py-2 border rounded disabled:opacity-50">Siguiente →</button>
       </div>
     </main>
-);
+  );
 }
