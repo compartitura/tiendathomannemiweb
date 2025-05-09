@@ -16,10 +16,12 @@ export async function getStaticProps({ params }) {
   const slugArray = params.slug || [];
   const prefix = slugArray.join(' > ').toLowerCase();
 
+  // Filtrar productos de esta categoría
   const items = products.filter(p =>
     String(p.CategoryTree || '').toLowerCase().startsWith(prefix)
   );
 
+  // Calcular subcategorías inmediatas
   const subs = new Set();
   items.forEach(p => {
     const levels = String(p.CategoryTree || '').split('>').map(s => s.trim());
@@ -37,25 +39,19 @@ export async function getStaticProps({ params }) {
 }
 
 export default function CategoryPage({ slug, items, subcategories }) {
-  const router = useRouter();
+  const router = useRouter();  
   const page = parseInt(router.query.page || '1', 10);
   const perPage = 20;
   const totalPages = Math.ceil(items.length / perPage);
   const slice = items.slice((page - 1) * perPage, (page - 1) * perPage + perPage);
 
-  const title = slug.length ? slug.join(' / ') : 'Categorías';
-
-  const changePage = newPage => {
-    router.push({ pathname: router.pathname.replace('[...slug]', slug.map(encodeURIComponent).join('/')), query: { page: newPage } });
-  };
+  const basePath = '/categories/' + slug.map(encodeURIComponent).join('/');
 
   return (
     <>
       <Head>
-        <title>{title} – Nuestra Tienda</title>
-        <meta name="description" content={`Explora productos en la categoría ${title}.`} />
+        <title>{slug.join(' / ') || 'Categorías'}</title>
       </Head>
-
       <div className="max-w-5xl mx-auto p-6">
         {/* Breadcrumbs */}
         <nav className="text-sm mb-4">
@@ -65,7 +61,7 @@ export default function CategoryPage({ slug, items, subcategories }) {
               {' › '}
               <Link
                 href={{
-                  pathname: `/categories/${slug.slice(0, i+1).map(encodeURIComponent).join('/')}`,
+                  pathname: '/categories/' + slug.slice(0, i + 1).map(encodeURIComponent).join('/'),
                   query: { page: 1 }
                 }}
                 className="hover:underline"
@@ -84,10 +80,7 @@ export default function CategoryPage({ slug, items, subcategories }) {
               {subcategories.map(sub => (
                 <Link
                   key={sub}
-                  href={{
-                    pathname: `/categories/${[...slug, sub].map(encodeURIComponent).join('/')}`,
-                    query: { page: 1 }
-                  }}
+                  href={`${basePath}/${encodeURIComponent(sub)}?page=1`}
                   className="px-3 py-1 border rounded hover:bg-gray-100"
                 >
                   {sub}
@@ -97,8 +90,13 @@ export default function CategoryPage({ slug, items, subcategories }) {
           </div>
         )}
 
+        {/* Debug producción */}
+        <p className="text-sm text-red-600 mb-4">
+          DEPURACIÓN: slice.length = {slice.length}, items.length = {items.length}
+        </p>
+
         {/* Grid paginado */}
-        <h1 className="text-2xl font-bold mb-6">{title}</h1>
+        <h1 className="text-2xl font-bold mb-6">{slug.join(' / ') || 'Categorías'}</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {slice.map(p => (
             <Link
@@ -119,21 +117,19 @@ export default function CategoryPage({ slug, items, subcategories }) {
 
         {/* Paginación */}
         <div className="flex items-center justify-center space-x-4 mt-8">
-          <button
-            onClick={() => changePage(page - 1)}
-            disabled={page <= 1}
-            className="px-4 py-2 border rounded disabled:opacity-50"
+          <Link
+            href={`${basePath}?page=${page - 1}`}
+            className={`px-4 py-2 border rounded ${page <= 1 ? 'opacity-50 pointer-events-none' : ''}`}
           >
             ← Anterior
-          </button>
+          </Link>
           <span>Página {page} de {totalPages}</span>
-          <button
-            onClick={() => changePage(page + 1)}
-            disabled={page >= totalPages}
-            className="px-4 py-2 border rounded disabled:opacity-50"
+          <Link
+            href={`${basePath}?page=${page + 1}`}
+            className={`px-4 py-2 border rounded ${page >= totalPages ? 'opacity-50 pointer-events-none' : ''}`}
           >
             Siguiente →
-          </button>
+          </Link>
         </div>
       </div>
     </>
