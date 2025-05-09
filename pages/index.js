@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 export async function getServerSideProps({ query }) {
-  const all = JSON.parse(
-    fs.readFileSync(path.join(process.cwd(), 'data', 'products.json'), 'utf-8')
-  );
+  const filePath = path.join(process.cwd(), 'data', 'products.json');
+  const all = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
   const page = parseInt(query.page || '1', 10);
   const perPage = 20;
   const totalPages = Math.ceil(all.length / perPage);
@@ -42,7 +42,7 @@ export default function Home({ slice, firstLevels, page, totalPages }) {
         </div>
       </div>
 
-      {/* Grid de productos */}
+      {/* Productos */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {slice.map(p => (
           <a
@@ -61,8 +61,8 @@ export default function Home({ slice, firstLevels, page, totalPages }) {
             <h2 className="mt-2 font-semibold">{p.Brand} {p.Model}</h2>
             {p.Description && (
               <p className="mt-1 text-sm text-gray-600">
-                {p.Description.length > 100
-                  ? `${p.Description.slice(0,100)}…`
+                {p.Description.length > 60
+                  ? `${p.Description.slice(0,60)}…`
                   : p.Description}
               </p>
             )}
@@ -73,9 +73,13 @@ export default function Home({ slice, firstLevels, page, totalPages }) {
 
       {/* Paginación */}
       <div className="flex items-center justify-center space-x-4 mt-8">
-        <button onClick={() => changePage(page-1)} disabled={page<=1} className="px-4 py-2 border rounded disabled:opacity-50">← Anterior</button>
+        <button onClick={() => changePage(page - 1)} disabled={page <= 1} className="px-4 py-2 border rounded disabled:opacity-50">
+          ← Anterior
+        </button>
         <span>Página {page} de {totalPages}</span>
-        <button onClick={() => changePage(page+1)} disabled={page>=totalPages} className="px-4 py-2 border rounded disabled:opacity-50">Siguiente →</button>
+        <button onClick={() => changePage(page + 1)} disabled={page >= totalPages} className="px-4 py-2 border rounded disabled:opacity-50">
+          Siguiente →
+        </button>
       </div>
     </main>
   );
