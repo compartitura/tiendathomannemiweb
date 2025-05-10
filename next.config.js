@@ -5,3 +5,9 @@ module.exports = {
     domains: ['www.thomann.de'],
   },
 };
+// next.config.js
+module.exports = {
+  experimental: {
+    allowDevelopmentBuild: true
+  }
+};

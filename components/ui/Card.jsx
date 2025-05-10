@@ -1,44 +1,47 @@
 // components/ui/Card.jsx
-import Image from 'next/image';
-import Link from 'next/link';
+import PropTypes from 'prop-types'
+import Link from 'next/link'
 
 export default function Card({ product }) {
   return (
-    <div className="border rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition">
-      <Link href={product.affiliateURL} legacyBehavior>
-        <a
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block"
-        >
-          <div className="relative w-full h-48">
-            <Image
+    <Link href={`/product/${product.ArticleNumber}`}>
+      <a className="flex flex-col w-full max-w-xs bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-lg transition">
+        {/* Imagen fija 248x248, centrada horizontalmente */}
+        <div className="flex justify-center">
+          <div className="w-[248px] h-[248px]">
+            <img
               src={product.ImageURL}
-              alt={product.Model}
-              layout="fill"
-              objectFit="cover"
-              placeholder="blur"
-              blurDataURL="/placeholder.png" // puedes usar un placeholder genérico
+              alt={product.Name}
+              loading="lazy"
+              width={248}
+              height={248}
+              className="w-full h-full object-cover"
             />
           </div>
-          <div className="p-4">
-            <h3 className="font-semibold text-lg mb-1">
-              {product.Brand} {product.Model}
-            </h3>
-            <p className="text-sm text-gray-600 mb-3">
-              {product.Description
-                ? (product.Description.length > 60
-                    ? `${product.Description.slice(0, 60)}…`
-                    : product.Description)
-                : '(sin descripción disponible)'
-              }
-            </p>
-            <span className="text-primary font-medium">
-              Comprar en Thomann →
-            </span>
-          </div>
-        </a>
-      </Link>
-    </div>
-  );
+        </div>
+        {/* Contenido debajo de la imagen */}
+        <div className="p-4 flex flex-col flex-1">
+          <h3 className="text-base md:text-lg font-semibold line-clamp-2">
+            {product.Name}
+          </h3>
+          <p className="mt-2 text-sm text-gray-600 line-clamp-3 flex-1">
+            {product.ShortDescription}
+          </p>
+          <span className="mt-4 text-lg font-bold">
+            {product.Price} €
+          </span>
+        </div>
+      </a>
+    </Link>
+  )
+}
+
+Card.propTypes = {
+  product: PropTypes.shape({
+    ArticleNumber: PropTypes.string.isRequired,
+    ImageURL: PropTypes.string.isRequired,
+    Name: PropTypes.string.isRequired,
+    ShortDescription: PropTypes.string,
+    Price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  }).isRequired,
 }
