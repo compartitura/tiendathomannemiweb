@@ -18,11 +18,9 @@ module.exports = {
         DEFAULT: {
           css: {
             a: {
-              textDecoration: 'none',            // sin subrayado
-              color: theme('colors.primary'),    // mantiene el color primary
-              '&:hover': {
-                textDecoration: 'underline',     // opcional: subrayado al hover
-              },
+              textDecoration: 'none',
+              color: theme('colors.primary'),
+              '&:hover': { textDecoration: 'underline' },
             },
           },
         },

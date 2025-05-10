@@ -1,10 +1,9 @@
-/* styles/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-html, body {
-width: 100%;
-margin: 0;
-padding: 0;
+a,
+a:hover,
+a:focus {
+  text-decoration: none !important;
 }

@@ -1,30 +1,21 @@
 // components/ui/Button.jsx
+import React from 'react';
+
 export default function Button({
   children,
-  variant = 'primary',  // 'primary' | 'secondary' | 'outline'
+  variant = 'solid',    // 'solid' | 'outline'
+  disabled = false,
   className = '',
   ...props
 }) {
-  const base = 'font-sans px-4 py-2 rounded focus:outline-none transition';
-  let colors;
-
-  switch (variant) {
-    case 'secondary':
-      colors = 'bg-secondary text-white hover:bg-primary';
-      break;
-    case 'outline':
-      colors = 'border border-primary text-primary hover:bg-primary hover:text-white';
-      break;
-    case 'primary':
-    default:
-      colors = 'bg-primary text-white hover:bg-accent';
-  }
-
+  const base = 'inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium transition';
+  const variants = {
+    solid: 'bg-primary text-white hover:bg-primary/90 disabled:bg-gray-300 disabled:cursor-not-allowed',
+    outline: 'border border-primary text-primary hover:bg-primary/10 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed'
+  };
+  const classes = [base, variants[variant], className].filter(Boolean).join(' ');
   return (
-    <button
-      className={`${base} ${colors} ${className}`}
-      {...props}
-    >
+    <button className={classes} disabled={disabled} {...props}>
       {children}
     </button>
   );

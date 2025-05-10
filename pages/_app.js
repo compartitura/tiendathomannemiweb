@@ -1,13 +1,10 @@
-// pages/_app.js
 import '../styles/globals.css';
-import { Inter } from 'next/font/google';
-
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+import Layout from '../components/ui/Layout';
 
 export default function App({ Component, pageProps }) {
   return (
-    <div className={inter.variable}>
+    <Layout>
       <Component {...pageProps} />
-    </div>
+    </Layout>
   );
 }

@@ -1,15 +1,25 @@
 // components/ui/Layout.jsx
-import Header from './Header';
-import Footer from './Footer';
+import React from 'react';
+import Link from 'next/link';
 
 export default function Layout({ children }) {
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-grow max-w-5xl mx-auto p-6 prose lg:prose-lg">
+    <div className="flex flex-col min-h-screen">
+      <header className="bg-secondary text-white p-4">
+        <div className="max-w-5xl mx-auto flex items-center">
+          <Link href="/" legacyBehavior>
+            <a className="text-xl font-bold">Mi Tienda Thomann</a>
+          </Link>
+        </div>
+      </header>
+
+      <main className="flex-grow bg-gray-50">
         {children}
       </main>
-      <Footer />
+
+      <footer className="bg-secondary text-white text-center py-4">
+        © {new Date().getFullYear()} Mi Tienda Thomann. Todos los derechos reservados.
+      </footer>
     </div>
   );
 }
