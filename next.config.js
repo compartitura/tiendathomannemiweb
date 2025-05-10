@@ -1,6 +1,11 @@
+// next.config.js
 /** @type {import('next').NextConfig} */
-module.exports = {
+const nextConfig = {
+  reactStrictMode: true,
+  swcMinify: true,
   images: {
-    domains: ['www.thomann.de'],
+    domains: ['www.compartitura.org'],
   },
 };
+
+export default nextConfig;

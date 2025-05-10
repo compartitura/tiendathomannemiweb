@@ -10,8 +10,10 @@ export default function Button({
 }) {
   const base = 'inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium transition';
   const variants = {
-    solid: 'bg-primary text-white hover:bg-primary/90 disabled:bg-gray-300 disabled:cursor-not-allowed',
-    outline: 'border border-primary text-primary hover:bg-primary/10 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed'
+    solid:
+      'bg-primary text-white hover:bg-primary/90 disabled:bg-gray-300 disabled:cursor-not-allowed',
+    outline:
+      'border border-primary text-primary hover:bg-primary/10 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed'
   };
   const classes = [base, variants[variant], className].filter(Boolean).join(' ');
   return (
