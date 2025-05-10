@@ -1,3 +1,4 @@
+// tailwind.config.js
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -13,6 +14,10 @@ module.exports = {
       },
       fontFamily: {
         sans: ["Inter","system-ui","sans-serif"],
+      },
+      // Ahora 5 columnas en XL+
+      gridTemplateColumns: {
+        "products-xl": "repeat(5, minmax(0, 1fr))",
       },
       typography: (theme) => ({
         DEFAULT: {

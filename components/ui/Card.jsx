@@ -11,23 +11,32 @@ export default function Card({ product }) {
     : Description;
 
   return (
-    <div className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition">
+    <div className="bg-white rounded-lg overflow-hidden transform transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg flex flex-col">
       <Link href={affiliateURL} legacyBehavior>
-        <a className="block relative w-full h-48">
-          <Image
-            src={ImageURL}
-            alt={Model}
-            fill
-            className="object-cover"
-          />
+        <a className="block w-full max-w-[248px] h-[248px] mx-auto">
+          <div className="relative w-full h-full">
+            <Image
+              src={ImageURL}
+              alt={Model}
+              fill
+              className="object-contain"
+            />
+          </div>
         </a>
       </Link>
-      <div className="p-4">
+      <div className="p-4 flex flex-col flex-grow">
         <h2 className="text-lg font-semibold mb-2">{title}</h2>
-        {snippet && <p className="text-sm text-gray-600 mb-4">{snippet}</p>}
-        <Link href={affiliateURL} legacyBehavior>
-          <a className="text-sm text-primary hover:underline">Ver en Thomann</a>
-        </Link>
+        {snippet && (
+          <p className="text-sm text-gray-600 mb-4 flex-grow">{snippet}</p>
+        )}
+        <div className="mt-auto flex justify-center">
+          <Link href={affiliateURL} legacyBehavior>
+            <a className="inline-flex items-center bg-black text-white text-sm font-medium px-4 py-2 rounded hover:bg-red-600 transition-colors duration-200">
+              <span className="mr-2" role="img" aria-label="carrito">🛒</span>
+              Más información y compra
+            </a>
+          </Link>
+        </div>
       </div>
     </div>
   );

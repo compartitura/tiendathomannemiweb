@@ -20,10 +20,10 @@ export async function getServerSideProps({ query }) {
     ...firstLevels.filter(cat => !FAVORITE_CATEGORIES.includes(cat))
   ];
 
-  const page = parseInt(query.page||'1',10);
+  const page = parseInt(query.page||'1', 10);
   const perPage = 20;
-  const totalPages = Math.ceil(all.length/perPage);
-  const slice = all.slice((page-1)*perPage, (page-1)*perPage+perPage);
+  const totalPages = Math.ceil(all.length / perPage);
+  const slice = all.slice((page - 1) * perPage, (page - 1) * perPage + perPage);
 
   return { props: { slice, firstLevels: sortedCategories, page, totalPages } };
 }
@@ -33,16 +33,16 @@ export default function Inicio({ slice, firstLevels, page, totalPages }) {
   const cambiarPagina = n => router.push({ pathname: '/', query: { page: n } });
 
   return (
-    <main className="max-w-5xl mx-auto p-6 space-y-6">
+    <main className="bg-white w-full mx-auto p-6 space-y-6">
       <section className="mb-4">
         <div className="flex flex-wrap gap-2">
           {firstLevels.map(cat => (
             <Link
               key={cat}
-              href={{ pathname: `/categories/${encodeURIComponent(cat)}`, query:{page:1} }}
+              href={{ pathname: `/categories/${encodeURIComponent(cat)}`, query: { page: 1 } }}
               legacyBehavior
             >
-              <a className="px-3 py-1 border rounded hover:bg-gray-100 text-sm">
+              <a className="px-3 py-1 text-sm rounded hover:bg-gray-100 border-none">
                 {cat}
               </a>
             </Link>
@@ -50,14 +50,18 @@ export default function Inicio({ slice, firstLevels, page, totalPages }) {
         </div>
       </section>
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {slice.map(product => <Card key={product.ArticleNumber} product={product}/> )}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-products-xl gap-6 justify-items-center">
+        {slice.map(product => <Card key={product.ArticleNumber} product={product} />)}
       </section>
 
       <section className="flex items-center justify-center space-x-4">
-        <Button onClick={()=>cambiarPagina(page-1)} variant="outline" disabled={page<=1}>← Anterior</Button>
+        <Button onClick={() => cambiarPagina(page - 1)} variant="outline" disabled={page <= 1}>
+          ← Anterior
+        </Button>
         <span className="text-sm">Página {page} de {totalPages}</span>
-        <Button onClick={()=>cambiarPagina(page+1)} variant="outline" disabled={page>=totalPages}>Siguiente →</Button>
+        <Button onClick={() => cambiarPagina(page + 1)} variant="outline" disabled={page >= totalPages}>
+          Siguiente →
+        </Button>
       </section>
     </main>
   );
