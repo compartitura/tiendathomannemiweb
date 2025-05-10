@@ -11,9 +11,9 @@ export default function Card({ product }) {
     : Description;
 
   return (
-    <div className="bg-white rounded-lg overflow-hidden transform transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg flex flex-col">
+    <div className="w-full bg-white rounded-lg overflow-hidden transform transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg flex flex-col">
       <Link href={affiliateURL} legacyBehavior>
-        <a className="block w-full max-w-[248px] h-[248px] mx-auto">
+        <a className="block w-full h-[248px]">
           <div className="relative w-full h-full">
             <Image
               src={ImageURL}

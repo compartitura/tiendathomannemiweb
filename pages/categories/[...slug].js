@@ -14,20 +14,30 @@ export async function getServerSideProps({ params, query }) {
   const prefix = slugArr.join(' > ').toLowerCase();
   const inCategory = all.filter(p => (p.CategoryTree || '').toLowerCase().startsWith(prefix));
 
-  const subs = Array.from(new Set(inCategory.map(p => {
-    const levels = (p.CategoryTree || '').split('>').map(s => s.trim());
-    return levels[slugArr.length];
-  }).filter(Boolean))).sort();
+  const subs = Array.from(
+    new Set(
+      inCategory.map(p => {
+        const levels = (p.CategoryTree || '').split('>').map(s => s.trim());
+        return levels[slugArr.length];
+      }).filter(Boolean)
+    )
+  ).sort();
 
   const FAVORITE_SUBCATEGORIES = ['Alto', 'Tenor', 'Soprano'];
   const sortedSubs = [
     ...FAVORITE_SUBCATEGORIES.filter(s => subs.includes(s)),
-    ...subs.filter(s => !FAVORITE_SUBCATEGORIES.includes(s)),
+    ...subs.filter(s => !FAVORITE_SUBCATEGORIES.includes(s))
   ];
 
   const subItems = sortedSubs.map(sub => {
-    const prod = inCategory.find(p => (p.CategoryTree || '').split('>').map(s => s.trim())[slugArr.length] === sub);
-    return { name: sub, slug: encodeURIComponent(sub), imageURL: prod?.ImageURL || '/placeholder.png' };
+    const prod = inCategory.find(p =>
+      (p.CategoryTree || '').split('>').map(s => s.trim())[slugArr.length] === sub
+    );
+    return {
+      name: sub,
+      slug: encodeURIComponent(sub),
+      imageURL: prod?.ImageURL || '/placeholder.png'
+    };
   });
 
   let filterDefs = [], filterQuery = {}, slice = [], page = 1, totalPages = 1;
@@ -59,27 +69,19 @@ export default function Categoria({ slug, subItems, filterDefs, filterQuery, sli
         </Link>
         {slug.map((parte, i) => (
           <span key={i}> ›{' '}
-            <Link
-              href={{
-                pathname: `${basePath.split('/').slice(0, i + 2).join('/')}`,
-                query: { page: 1 },
-              }}
-              legacyBehavior
-            >
-              <a className={`${i === slug.length - 1 ? 'font-semibold text-primary' : 'hover:underline'}`}>
-                {parte}
-              </a>
+            <Link href={{ pathname: `${basePath.split('/').slice(0, i + 2).join('/')}`, query: { page: 1 } }} legacyBehavior>
+              <a className={`${i === slug.length - 1 ? 'font-semibold text-primary' : 'hover:underline'}`}>{parte}</a>
             </Link>
           </span>
         ))}
       </nav>
 
       {subItems.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-products-xl gap-6 justify-items-center">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-products-xl gap-6 justify-items-stretch">
           {subItems.map(item => (
             <Link key={item.name} href={{ pathname: `${basePath}/${item.slug}`, query: { page: 1 } }} legacyBehavior>
-              <a className="block bg-white rounded-lg overflow-hidden transform transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg">
-                <div className="relative w-full max-w-[248px] h-[248px] mx-auto">
+              <a className="block w-full bg-white rounded-lg overflow-hidden transform transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg">
+                <div className="relative w-full h-[248px]">
                   <Image
                     src={item.imageURL}
                     alt={item.name}
@@ -87,7 +89,9 @@ export default function Categoria({ slug, subItems, filterDefs, filterQuery, sli
                     className="object-contain"
                   />
                 </div>
-                <div className="p-4 text-center"><h3 className="font-semibold text-lg">{item.name}</h3></div>
+                <div className="p-4 text-center">
+                  <h3 className="font-semibold text-lg">{item.name}</h3>
+                </div>
               </a>
             </Link>
           ))}
@@ -96,7 +100,7 @@ export default function Categoria({ slug, subItems, filterDefs, filterQuery, sli
         <div className="flex flex-col lg:flex-row gap-6">
           <aside className="w-full lg:w-1/4"><FilterSidebar filterDefs={filterDefs} filterQuery={filterQuery} /></aside>
           <div className="flex-grow space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-products-xl gap-6 justify-items-center">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-products-xl gap-6 justify-items-center">
               {slice.map(product => <Card key={product.ArticleNumber} product={product} />)}
             </div>
             <div className="flex items-center justify-center space-x-4">
