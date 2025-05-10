@@ -14,12 +14,10 @@ export async function getServerSideProps({ params, query }) {
   const slugArr = params.slug || [];
   const prefix = slugArr.join(' > ').toLowerCase();
 
-  // Productos en esta categoría
   const inCategory = all.filter(p =>
     (p.CategoryTree || '').toLowerCase().startsWith(prefix)
   );
 
-  // Subcategorías inmediatas
   const subs = Array.from(new Set(
     inCategory.map(p => {
       const levels = (p.CategoryTree || '').split('>').map(s => s.trim());
@@ -27,20 +25,7 @@ export async function getServerSideProps({ params, query }) {
     }).filter(Boolean)
   )).sort();
 
-  // Subcategorías favoritas en español
-  const FAVORITE_SUBCATEGORIES = [
-    'Alto',
-    'Tenor',
-    'Soprano'
-  ];
-  // Ordenar con favoritas arriba
-  const sortedSubs = [
-    ...FAVORITE_SUBCATEGORIES.filter(s => subs.includes(s)),
-    ...subs.filter(s => !FAVORITE_SUBCATEGORIES.includes(s))
-  ];
-
-  // Construir subItems con imagen+enlace
-  const subItems = sortedSubs.map(sub => {
+  const subItems = subs.map(sub => {
     const prod = inCategory.find(p => {
       const levels = (p.CategoryTree || '').split('>').map(s => s.trim());
       return levels[slugArr.length] === sub;
@@ -52,33 +37,20 @@ export async function getServerSideProps({ params, query }) {
     };
   });
 
-  // Si es último nivel (sin subItems), preparar filtros y productos
   let filterDefs = [], filterQuery = {}, slice = [], page = 1, totalPages = 1;
   if (subItems.length === 0) {
-    // Marcas únicas
     const brands = Array.from(new Set(inCategory.map(p => p.Brand))).sort();
-    // Leer filtro de marcas
     if (query.brand) {
-      filterQuery.brand = Array.isArray(query.brand)
-        ? query.brand
-        : [query.brand];
+      filterQuery.brand = Array.isArray(query.brand) ? query.brand : [query.brand];
     }
-    // Filtrar productos por marca
     let filtered = inCategory;
     if (filterQuery.brand) {
-      filtered = filtered.filter(p =>
-        filterQuery.brand.includes(p.Brand)
-      );
+      filtered = filtered.filter(p => filterQuery.brand.includes(p.Brand));
     }
-    // Paginación
     page = parseInt(query.page || '1', 10);
     const perPage = 20;
     totalPages = Math.ceil(filtered.length / perPage);
-    slice = filtered.slice(
-      (page - 1) * perPage,
-      (page - 1) * perPage + perPage
-    );
-    // Definimos filtro de marcas
+    slice = filtered.slice((page - 1) * perPage, (page - 1) * perPage + perPage);
     filterDefs = [{ name: 'Marcas', key: 'brand', options: brands }];
   }
 
@@ -112,8 +84,7 @@ export default function Categoria({
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      {/* Migas de pan */}
+    <div className="w-full mx-auto px-4">
       <nav className="text-sm mb-4">
         <Link href="/" legacyBehavior><a className="hover:underline">Inicio</a></Link>
         {slug.map((parte, i) => (
@@ -133,58 +104,35 @@ export default function Categoria({
       </nav>
 
       {subItems.length > 0 ? (
-        // Mostrar subcategorías con imagen
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="flex flex-wrap justify-center gap-6">
           {subItems.map(item => (
             <Link
               key={item.name}
               href={{ pathname: `${basePath}/${item.slug}`, query: { page: 1 } }}
               legacyBehavior
             >
-              <a className="block border rounded-lg overflow-hidden hover:shadow-lg transition">
-                <div className="w-full h-48 relative">
-                  <img
-                    src={item.imageURL}
-                    alt={item.name}
-                    loading="lazy"
-                    className="object-cover w-full h-full"
-                  />
+              <a className="block border rounded-lg overflow-hidden hover:shadow-lg transition p-4 w-[248px]">
+                <div className="w-[248px] h-[248px] mx-auto">
+                  <img src={item.imageURL} alt={item.name} className="object-cover w-[248px] h-[248px] mx-auto" />
                 </div>
-                <div className="p-4">
-                  <h3 className="font-semibold text-lg">{item.name}</h3>
-                </div>
+                <h3 className="mt-4 font-semibold text-center">{item.name}</h3>
               </a>
             </Link>
           ))}
         </div>
       ) : (
-        // Último nivel: sidebar + productos
         <div className="flex flex-col lg:flex-row gap-6">
           <aside className="w-full lg:w-1/4">
             <FilterSidebar filterDefs={filterDefs} filterQuery={filterQuery} />
           </aside>
           <div className="flex-grow space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {slice.map(product => (
-                <Card key={product.ArticleNumber} product={product} />
-              ))}
+            <div className="flex flex-wrap justify-center gap-6">
+              {slice.map(p => <Card key={p.ArticleNumber} product={p} />)}
             </div>
             <div className="flex items-center justify-center space-x-4">
-              <Button
-                onClick={() => cambiarPagina(page - 1)}
-                variant="outline"
-                disabled={page <= 1}
-              >
-                ← Anterior
-              </Button>
+              <Button onClick={() => cambiarPagina(page - 1)} variant="outline" disabled={page <= 1}>← Anterior</Button>
               <span className="text-sm">Página {page} de {totalPages}</span>
-              <Button
-                onClick={() => cambiarPagina(page + 1)}
-                variant="outline"
-                disabled={page >= totalPages}
-              >
-                Siguiente →
-              </Button>
+              <Button onClick={() => cambiarPagina(page + 1)} variant="outline" disabled={page >= totalPages}>Siguiente →</Button>
             </div>
           </div>
         </div>
