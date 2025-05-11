@@ -1,59 +1,61 @@
 // components/ui/SearchOverlay.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { translateCategory } from '../../utils/translations';
 
-export default function SearchOverlay({ onClose }) {
+export default function SearchOverlay({ products, onClose }) {
   const [query, setQuery] = useState('');
   const [brandFilter, setBrandFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [visibleCount, setVisibleCount] = useState(25);
   const [brandSearch, setBrandSearch] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
-  const [animatedCount, setAnimatedCount] = useState(0);
-  const [products, setProducts] = useState([]);
   const brandSelectRef = useRef(null);
   const categorySelectRef = useRef(null);
+  const overlayRef = useRef(null);
 
-  const STATIC_TOTAL = 115465;
-
+  // Close overlay when clicking outside
   useEffect(() => {
-    fetch('/api/products')
-      .then(res => res.json())
-      .then(setProducts);
-  }, []);
+    const handleClickOutside = (e) => {
+      if (overlayRef.current && !overlayRef.current.contains(e.target)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]);
 
+  if (!Array.isArray(products)) return null;
+
+  // Build options
   const brands = Array.from(new Set(
-    products
-      .filter(p => !categoryFilter || (p.CategoryTree || '').split('>')[0].trim() === categoryFilter)
-      .map(p => p.Brand)
+    products.filter(p => !categoryFilter || (p.CategoryTree || '').includes(categoryFilter)).map(p => p.Brand)
   ))
     .filter(b => b.toLowerCase().includes(brandSearch.toLowerCase()))
     .sort();
 
-  const categories = Array.from(new Set(
-    products
-      .filter(p => !brandFilter || p.Brand === brandFilter)
-      .map(p => (p.CategoryTree || '').split('>')[0].trim())
+  const subcategories = Array.from(new Set(
+    products.filter(p => !brandFilter || p.Brand === brandFilter)
+      .map(p => (p.CategoryTree || '').split('>')[1]?.trim())
+      .filter(Boolean)
   ))
     .filter(c => translateCategory(c).toLowerCase().includes(categorySearch.toLowerCase()))
     .sort();
 
+  // Filter products
   useEffect(() => {
     let results = products;
 
     if (query.trim().length >= 3 && (brandFilter || categoryFilter)) {
-      results = results.filter(product =>
-        `${product.Brand} ${product.Model} ${product.CategoryTree}`
-          .toLowerCase()
-          .includes(query.toLowerCase())
+      results = results.filter(p =>
+        `${p.Brand} ${p.Model} ${p.CategoryTree}`.toLowerCase().includes(query.toLowerCase())
       );
     } else if (!query && !brandFilter && !categoryFilter) {
-      results = [...products]
-        .map(p => {
-          const favData = JSON.parse(localStorage.getItem(`favorite-${p.ArticleNumber}`)) || { count: 0 };
-          return { ...p, favCount: favData.count };
-        })
+      results = products
+        .map(p => ({
+          ...p,
+          favCount: JSON.parse(localStorage.getItem(`favorite-${p.ArticleNumber}`))?.count || 0
+        }))
         .sort((a, b) => b.favCount - a.favCount)
         .slice(0, 10);
     }
@@ -61,71 +63,62 @@ export default function SearchOverlay({ onClose }) {
     if (brandFilter) {
       results = results.filter(p => p.Brand === brandFilter);
     }
-
     if (categoryFilter) {
-      results = results.filter(p =>
-        (p.CategoryTree || '').split('>')[0].trim() === categoryFilter
-      );
+      results = results.filter(p => (p.CategoryTree || '').includes(categoryFilter));
     }
 
     setFilteredProducts(results);
+    setVisibleCount(25);
   }, [query, brandFilter, categoryFilter, products]);
 
-  useEffect(() => {
-    let start = 0;
-    const end = STATIC_TOTAL;
-    const duration = 5000;
-    const increment = end / (duration / 30);
-    const animate = () => {
-      start += increment;
-      if (start < end) {
-        setAnimatedCount(Math.ceil(start));
-        setTimeout(animate, 30);
-      } else {
-        setAnimatedCount(end);
-      }
-    };
-    animate();
-  }, []);
+  const noFilters = !brandFilter && !categoryFilter;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-start pt-10 px-4">
-      <div className="w-full max-w-4xl bg-white rounded-lg p-4 shadow-lg relative">
-        <div className="absolute top-2 left-4 flex items-center space-x-2">
-          <img src="https://www.compartitura.org/medias/images/transportecompartiturapng.png" alt="logo" className="w-[50px] h-[50px]" />
-          <h3 className="text-sm text-gray-500 font-semibold">Compartitura.org</h3>
-        </div>
-        <div className="absolute top-2 right-4">
-          <img src="https://www.compartitura.org/medias/images/thomann-partner.gif" alt="Thomann" className="w-[110px] h-[35px] object-contain" />
-        </div>
+      <div ref={overlayRef} className="w-full max-w-4xl bg-white rounded-lg p-4 shadow-lg">
 
-        <div className="mt-10 mb-4">
-          <h2 className="text-lg font-semibold mb-2 text-center text-gray-500">
-            Busca instrumentos y accesorios entre{' '}
-            <span className="text-xl font-bold text-black">{filteredProducts.length || animatedCount}</span>{' '}
-            artículos
-          </h2>
-          <div className="flex items-center">
+        {/* Filters */}
+        <div className="flex gap-4 mb-4">
+          {/* Subcategory Filter */}
+          <div className="w-full relative">
             <input
               type="text"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder={brandFilter || categoryFilter ? "¿Qué modelo buscas?" : "Elige al menos un filtro"}
-              className="w-full bg-black text-white border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none"
-              disabled={!brandFilter && !categoryFilter}
-              autoFocus
+              placeholder="Buscar productos..."
+              value={categorySearch}
+              onChange={e => {
+                setCategorySearch(e.target.value);
+                if (categorySelectRef.current) {
+                  categorySelectRef.current.size = Math.min(subcategories.length, 6);
+                }
+              }}
+              onBlur={() => categorySelectRef.current && !categorySearch && (categorySelectRef.current.size = 1)}
+              className="w-full border border-gray-300 rounded px-2 py-1 pr-8"
             />
-            <button
-              onClick={onClose}
-              className="ml-4 text-gray-500 hover:text-gray-700"
+            {categorySearch && (
+              <button
+                onClick={() => { setCategorySearch(''); categorySelectRef.current.size = 1; }}
+                className="absolute top-1 right-8 text-gray-400 hover:text-black"
+              >✕</button>
+            )}
+            <select
+              ref={categorySelectRef}
+              value={categoryFilter}
+              onChange={e => setCategoryFilter(e.target.value)}
+              className="w-full border border-gray-300 rounded px-2 py-1 mt-1"
+              size={1}
             >
-              ✖️
-            </button>
+              <option value="">Todos los productos</option>
+              {subcategories.map(c => (
+                <option key={c} value={c}>{translateCategory(c)}</option>
+              ))}
+            </select>
+            {categoryFilter && (
+              <button onClick={() => setCategoryFilter('')} className="absolute top-11 right-2 text-gray-400 hover:text-black">✕</button>
+            )}
           </div>
-        </div>
 
-        <div className="flex gap-4 mb-4 text-sm">
-          <div className="w-full">
+          {/* Brand Filter */}
+          <div className="w-full relative">
             <input
               type="text"
               placeholder="Buscar fabricante..."
@@ -136,100 +129,82 @@ export default function SearchOverlay({ onClose }) {
                   brandSelectRef.current.size = Math.min(brands.length, 6);
                 }
               }}
-              onBlur={() => {
-                if (brandSelectRef.current && !brandSearch) brandSelectRef.current.size = 1;
-              }}
-              className="w-full mb-1 border border-gray-300 rounded px-2 py-1"
+              onBlur={() => brandSelectRef.current && !brandSearch && (brandSelectRef.current.size = 1)}
+              className="w-full border border-gray-300 rounded px-2 py-1 pr-8"
             />
+            {brandSearch && (
+              <button
+                onClick={() => { setBrandSearch(''); brandSelectRef.current.size = 1; }}
+                className="absolute top-1 right-8 text-gray-400 hover:text-black"
+              >✕</button>
+            )}
             <select
               ref={brandSelectRef}
               value={brandFilter}
               onChange={e => setBrandFilter(e.target.value)}
-              className="w-full border border-gray-300 rounded px-2 py-1"
+              className="w-full border border-gray-300 rounded px-2 py-1 mt-1"
+              size={1}
             >
               <option value="">Todos los fabricantes</option>
               {brands.map(b => (
                 <option key={b} value={b}>{b}</option>
               ))}
             </select>
-          </div>
-
-          <div className="w-full">
-            <input
-              type="text"
-              placeholder="Buscar instrumento..."
-              value={categorySearch}
-              onChange={e => {
-                setCategorySearch(e.target.value);
-                if (categorySelectRef.current) {
-                  categorySelectRef.current.size = Math.min(categories.length, 6);
-                }
-              }}
-              onBlur={() => {
-                if (categorySelectRef.current && !categorySearch) categorySelectRef.current.size = 1;
-              }}
-              className="w-full mb-1 border border-gray-300 rounded px-2 py-1"
-            />
-            <select
-              ref={categorySelectRef}
-              value={categoryFilter}
-              onChange={e => setCategoryFilter(e.target.value)}
-              className="w-full border border-gray-300 rounded px-2 py-1"
-            >
-              <option value="">Todos los instrumentos</option>
-              {categories.map(c => (
-                <option key={c} value={c}>{translateCategory(c)}</option>
-              ))}
-            </select>
+            {brandFilter && (
+              <button onClick={() => setBrandFilter('')} className="absolute top-11 right-2 text-gray-400 hover:text-black">✕</button>
+            )}
           </div>
         </div>
 
-        {(!query && !brandFilter && !categoryFilter) && (
-          <div className="text-sm font-semibold mb-2 flex items-center text-gray-500">
-            Los diez que más gustan
-            <svg className="w-5 h-5 ml-2 text-red-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
-          </div>
-        )}
+        {/* Dynamic Text */}
+        <div className="text-sm text-gray-700 text-left mb-4">
+          {noFilters ? (
+            <div>
+              LOS <strong className="text-black">{filteredProducts.length}</strong> PRODUCTOS QUE MÁS LES GUSTAN A LOS USUARIOS DE COMPARTITURA <span className="text-red-500">❤️</span>
+            </div>
+          ) : (
+            <div>
+              Disponemos de <strong className="text-black">{filteredProducts.length}</strong> <strong>{categoryFilter}</strong> fabricados por <strong>{brandFilter}</strong>
+            </div>
+          )}
+        </div>
 
-        {filteredProducts.length > 0 ? (
-          <ul className="max-h-[70vh] overflow-auto space-y-4">
-            {filteredProducts.map(product => {
-              const favData = JSON.parse(localStorage.getItem(`favorite-${product.ArticleNumber}`)) || { count: 0 };
-              return (
-                <li key={product.ArticleNumber} className="flex gap-4 border-b pb-4">
-                  <img
-                    src={product.ImageURL || '/logo-compartitura3.png'}
-                    alt={product.Model}
-                    className="w-20 h-20 object-contain flex-shrink-0 bg-white rounded"
-                    onError={e => (e.currentTarget.src = '/logo-compartitura3.png')}
-                  />
-                  <div className="flex-grow text-sm text-gray-600">
-                    <a
-                      href={product.affiliateURL || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline font-medium"
-                    >
-                      {product.Brand} {product.Model}
-                    </a>
-                    {product.Description && (
-                      <p className="text-xs mt-1 line-clamp-2">
-                        {product.Description}
-                      </p>
-                    )}
-                    <div className="text-xs font-semibold mt-1 text-red-500 flex items-center">
-                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                      </svg>
-                      {favData.count || 0}
+        {/* Results */}
+        {filteredProducts.length > 0 && (
+          <>
+            <ul className="max-h-[60vh] overflow-auto space-y-4">
+              {filteredProducts.slice(0, visibleCount).map(product => {
+                const favData = JSON.parse(localStorage.getItem(`favorite-${product.ArticleNumber}`)) || { count: 0 };
+                return (
+                  <li key={product.ArticleNumber} className="flex gap-4 border-b pb-4">
+                    <img
+                      src={product.ImageURL || '/logo-compartitura3.png'}
+                      alt={product.Model}
+                      className="w-20 h-20 object-contain bg-white rounded"
+                      onError={e => (e.currentTarget.src = '/logo-compartitura3.png')} 
+                    />
+                    <div className="flex-grow text-gray-600">
+                      <a
+                        href={product.affiliateURL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-gray-800 hover:underline"
+                      >
+                        {product.Brand} {product.Model}
+                      </a>
+                      {product.Description && <p className="text-xs mt-1 line-clamp-2">{product.Description}</p>}
+                      <div className="text-xs font-semibold mt-1 text-red-500 flex items-center">❤️ {favData.count}</div>
                     </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          query.length >= 3 && <p className="text-sm text-gray-500">No se encontraron productos.</p>
+                  </li>
+                );
+              })}
+            </ul>
+            {filteredProducts.length > visibleCount && (
+              <div className="text-center mt-4">
+                <button onClick={() => setVisibleCount(prev => prev + 25)} className="px-4 py-2 bg-gray-100 text-sm rounded hover:bg-gray-200">Cargar más</button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

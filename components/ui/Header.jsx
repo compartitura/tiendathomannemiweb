@@ -6,11 +6,11 @@ import { translateCategory } from '../../utils/translations';
 export default function Header({ onSearchClick }) {
   const [showMenu, setShowMenu] = useState(false);
   const [categories, setCategories] = useState([]);
-  const menuRef = useRef();
+  const headerRef = useRef();
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const res = await fetch('/api/products');
+      const res = await fetch('/data/products.json');
       const data = await res.json();
       const cats = Array.from(new Set(
         data.map(p => (p.CategoryTree || '').split('>')[0].trim()).filter(Boolean)
@@ -22,7 +22,7 @@ export default function Header({ onSearchClick }) {
 
   useEffect(() => {
     const handleOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
+      if (headerRef.current && !headerRef.current.contains(e.target)) {
         setShowMenu(false);
       }
     };
@@ -33,7 +33,7 @@ export default function Header({ onSearchClick }) {
   }, [showMenu]);
 
   return (
-    <header className="fixed top-0 left-0 right-0 bg-white z-50 shadow">
+    <header ref={headerRef} className="fixed top-0 left-0 right-0 bg-white z-50 shadow">
       <div className="w-full px-4 py-3 flex justify-between items-center h-20">
         <div className="flex items-center gap-4">
           <button
@@ -52,10 +52,7 @@ export default function Header({ onSearchClick }) {
       </div>
 
       {showMenu && (
-        <div
-          ref={menuRef}
-          className="absolute top-full left-0 right-0 bg-white border-t border-gray-200 max-h-[60vh] overflow-y-auto shadow-xl z-40"
-        >
+        <div className="absolute top-full left-0 right-0 bg-white border-t border-gray-200 max-h-[60vh] overflow-y-auto shadow-xl z-40">
           <div className="w-full px-4 py-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 text-sm">
             {categories.map(cat => (
               <Link
