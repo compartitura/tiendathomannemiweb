@@ -1,14 +1,16 @@
 // components/ui/Header.jsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
+import { translateCategory } from '../../utils/translations';
 
 export default function Header({ onSearchClick }) {
   const [showMenu, setShowMenu] = useState(false);
   const [categories, setCategories] = useState([]);
+  const menuRef = useRef();
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const res = await fetch('/data/products.json');
+      const res = await fetch('/api/products');
       const data = await res.json();
       const cats = Array.from(new Set(
         data.map(p => (p.CategoryTree || '').split('>')[0].trim()).filter(Boolean)
@@ -17,6 +19,18 @@ export default function Header({ onSearchClick }) {
     };
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowMenu(false);
+      }
+    };
+    if (showMenu) {
+      document.addEventListener('mousemove', handleOutside);
+    }
+    return () => document.removeEventListener('mousemove', handleOutside);
+  }, [showMenu]);
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-white z-50 shadow">
@@ -38,7 +52,10 @@ export default function Header({ onSearchClick }) {
       </div>
 
       {showMenu && (
-        <div className="absolute top-full left-0 right-0 bg-white border-t border-gray-200 max-h-[60vh] overflow-y-auto shadow-xl z-40">
+        <div
+          ref={menuRef}
+          className="absolute top-full left-0 right-0 bg-white border-t border-gray-200 max-h-[60vh] overflow-y-auto shadow-xl z-40"
+        >
           <div className="w-full px-4 py-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 text-sm">
             {categories.map(cat => (
               <Link
@@ -46,7 +63,7 @@ export default function Header({ onSearchClick }) {
                 href={{ pathname: `/categories/${encodeURIComponent(cat)}`, query: { page: 1 } }}
                 className="text-gray-700 hover:text-black hover:underline"
               >
-                {cat}
+                {translateCategory(cat)}
               </Link>
             ))}
           </div>

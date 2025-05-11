@@ -49,25 +49,8 @@ export default function Inicio({ slice, firstLevels, page, totalPages }) {
     router.push({ pathname: '/', query: { page: n } });
 
   return (
-    <main className="bg-white w-full mx-auto p-6 space-y-6">
-      <section className="mb-4">
-        <div className="flex flex-wrap gap-2">
-          {firstLevels.map(cat => (
-            <Link
-              key={cat}
-              href={{
-                pathname: `/categories/${encodeURIComponent(cat)}`,
-                query: { page: 1 }
-              }}
-              legacyBehavior
-            >
-              <a className="px-3 py-1 text-sm rounded hover:bg-gray-100 border-none">
-                {translateCategory(cat)}
-              </a>
-            </Link>
-          ))}
-        </div>
-      </section>
+    <main className="bg-white w-full mx-auto p-6 space-y-6 pt-28">
+      <div className="h-6" />
 
       <section className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-products-xl gap-6 justify-items-center">
         {slice.map(product => (
@@ -95,5 +78,5 @@ export default function Inicio({ slice, firstLevels, page, totalPages }) {
         </Button>
       </section>
     </main>
-);
+  );
 }

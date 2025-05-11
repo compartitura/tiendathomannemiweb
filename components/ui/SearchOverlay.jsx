@@ -1,8 +1,9 @@
 // components/ui/SearchOverlay.jsx
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { translateCategory } from '../../utils/translations';
 
-export default function SearchOverlay({ products, onClose }) {
+export default function SearchOverlay({ onClose }) {
   const [query, setQuery] = useState('');
   const [brandFilter, setBrandFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -10,10 +11,17 @@ export default function SearchOverlay({ products, onClose }) {
   const [brandSearch, setBrandSearch] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
   const [animatedCount, setAnimatedCount] = useState(0);
+  const [products, setProducts] = useState([]);
   const brandSelectRef = useRef(null);
   const categorySelectRef = useRef(null);
 
   const STATIC_TOTAL = 115465;
+
+  useEffect(() => {
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(setProducts);
+  }, []);
 
   const brands = Array.from(new Set(
     products
@@ -88,9 +96,7 @@ export default function SearchOverlay({ products, onClose }) {
           <h3 className="text-sm text-gray-500 font-semibold">Compartitura.org</h3>
         </div>
         <div className="absolute top-2 right-4">
-          <a href="https://www.compartitura.org/paginas/tienda-de-instrumentos.html" target="_blank" rel="noopener noreferrer">
-            <img src="https://www.compartitura.org/medias/images/thomann-partner.gif" alt="Thomann" className="w-[110px] h-[35px] object-contain" />
-          </a>
+          <img src="https://www.compartitura.org/medias/images/thomann-partner.gif" alt="Thomann" className="w-[110px] h-[35px] object-contain" />
         </div>
 
         <div className="mt-10 mb-4">
@@ -197,7 +203,7 @@ export default function SearchOverlay({ products, onClose }) {
                     className="w-20 h-20 object-contain flex-shrink-0 bg-white rounded"
                     onError={e => (e.currentTarget.src = '/logo-compartitura3.png')}
                   />
-                  <div className="flex-grow text-sm">
+                  <div className="flex-grow text-sm text-gray-600">
                     <a
                       href={product.affiliateURL || '#'}
                       target="_blank"
@@ -207,7 +213,7 @@ export default function SearchOverlay({ products, onClose }) {
                       {product.Brand} {product.Model}
                     </a>
                     {product.Description && (
-                      <p className="text-gray-600 text-xs mt-1 line-clamp-2">
+                      <p className="text-xs mt-1 line-clamp-2">
                         {product.Description}
                       </p>
                     )}
