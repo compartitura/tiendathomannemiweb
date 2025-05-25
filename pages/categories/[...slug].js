@@ -120,9 +120,9 @@ export default function Categoria({ slug, subItems, filterDefs, filterQuery, sli
             <FilterSidebar filterDefs={filterDefs} filterQuery={filterQuery} />
           </aside>
           <div className="flex-grow space-y-6">
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-products-xl gap-6 justify-items-center">
-              {slice.map(product => <Card key={product.ArticleNumber} product={product} />)}
-            </div>
+             <div className="flex flex-col space-y-6">
+   {slice.map(product => <Card key={product.ArticleNumber} product={product} />)}
+  </div
             <div className="flex items-center justify-center space-x-4">
               <Button onClick={() => cambiarPagina(page - 1)} variant="outline" disabled={page <= 1}>← Anterior</Button>
               <span className="text-sm">Página {page} de {totalPages}</span>
