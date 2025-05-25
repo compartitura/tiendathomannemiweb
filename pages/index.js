@@ -52,11 +52,11 @@ export default function Inicio({ slice, firstLevels, page, totalPages }) {
     <main className="bg-white w-full mx-auto p-6 space-y-6 pt-28">
       <div className="h-6" />
 
-      <section className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-products-xl gap-6 justify-items-center">
-        {slice.map(product => (
-          <Card key={product.ArticleNumber} product={product} />
-        ))}
-      </section>
++ <section className="flex flex-col space-y-6">
++   {slice.map(product => (
++     <Card key={product.ArticleNumber} product={product} />
++   ))}
++ </section>
 
       <section className="flex items-center justify-center space-x-4">
         <Button
